@@ -11,12 +11,18 @@
 
 #define BUFFER_SIZE 1024
 
-int main()
+int main(int argc, char *argv[])
 {
     int sock = 0, n = 0;
     char ip[10] = {"127.0.0.1"};
     char buffer[BUFFER_SIZE];
     struct sockaddr_in serv_addr; 
+
+    if(argc != 2)
+    {
+        printf("\n Usage: %s <port> \n",argv[0]);
+        return 1;
+    } 
 
     memset(buffer, '0',sizeof(buffer));
     if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -42,19 +48,24 @@ int main()
        return 1;
     } 
 
-    while ( (n = read(sock, buffer, sizeof(buffer)-1)) > 0)
-    {
-        buffer[n] = 0;
-        if(fputs(buffer, stdout) == EOF)
-        {
-            printf("\n Error : Fputs error\n");
-        }
-    } 
+    //-----COMMANDS-----
+    char* cmd = "ADD blah";
+    n = write( sock, cmd, strlen( cmd ) );
+    if ( n < strlen( cmd ) ) {
+        perror( "write()" );
+        exit( 1 );
+    }
+    sleep(5);
 
-    if(n < 0)
-    {
-        printf("\n Read error \n");
-    } 
-
+    //TODO: Multiple commands like this not working
+    /*
+    cmd = "hello again";
+    n = write( sock, cmd, strlen( cmd ) );
+    if ( n < strlen( cmd ) ) {
+        perror( "write()" );
+        exit( 1 );
+    }
+    sleep(5);
+    */
     return 0;
 }
