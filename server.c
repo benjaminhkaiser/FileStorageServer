@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 #define BUFFER_SIZE 1024
 extern int errno;
@@ -16,31 +17,72 @@ extern int errno;
 * Fills cmd[] with command separated into args.
 */
 void parseCommand(char buffer[BUFFER_SIZE], char *cmd[]){
-    //separate values into array
-    cmd[0] = strsep(&buffer, " ");
+    //separate values into array, delimiting at " " and "\n"
+    cmd[0] = strsep(&buffer, " \n");
     int i = 0;
     while (cmd[i]){
         i++;
-        cmd[i] = strsep(&buffer, " ");
+        cmd[i] = strsep(&buffer, " \n");
     }
 }
 
-int addFile(char *cmd[]){
-    int n = mkdir(".storage", S_IRWXU);
+/*
+* Returns true if file exists and false otherwise
+*/
+int fileExists(const char* file){
+    struct stat buffer;   
+    return (stat (file, &buffer) == 0);
+}
+
+/*
+* Adds file to .storage directory.
+* If the .storage directory doesn't exist, it is created.
+* If the file already exists, it is not overwritten.
+*
+* Return codes: 0 = added successfully
+*               1 = failed to add
+*               2 = file already exists
+*/
+int addFile(char *cmd[], int argc){
+    //Create .storage folder
+    char path[80] = ".storage";
+    int n = mkdir(path, S_IRWXU);
     if (n < 0 && errno != EEXIST){
         perror("mkdir()");
         return(0);
     }
 
+    //Construct the relative path to the file to create
+    strcpy(path,"./.storage/");
+    strcat(path,cmd[1]);
+
+    //If the file already exists, return immediately
+    if (fileExists(path)){
+        return(2);
+    }
+
+    //Otherwise, open the file and write to it
+    int fd = open(path, O_CREAT|O_WRONLY, S_IRUSR|S_IWUSR);
+    if (fd < 0){
+        perror("open()");
+        return(0);
+    } else {
+       n = write(fd, cmd[3], atoi(cmd[2]));
+       if (n < 0){
+        perror("write()");
+        return(0);
+       }
+    }
+
     return(1);
 }
 
-int updateFile(char *cmd[]){
+int updateFile(char *cmd[], int argc){
 
     return(1);
 }
 
-int readFile(char *cmd[]){
+int readFile(char *cmd[], int argc){
 
     return(1);
 }
@@ -67,7 +109,7 @@ int main(int argc, char *argv[])
     int sock;   //socket file descriptor
     int newsock = 0;    //new socket file descriptor
     struct sockaddr_in server; //socket struct from socket.h
-    struct sockaddr_in client; //socket struct from socket.h
+    //struct sockaddr_in client; //socket struct from socket.h
 
     char buffer[BUFFER_SIZE];
 
@@ -117,6 +159,7 @@ int main(int argc, char *argv[])
 
             parseCommand(buffer, cmd);
 
+            printf("\n");
             i = 0;
             while (cmd[i]){
                 printf("%d: %s\n", i, cmd[i]);
@@ -124,17 +167,14 @@ int main(int argc, char *argv[])
             }
 
             if (strcmp(cmd[0],"ADD") == 0){
-                addFile(cmd);
+                addFile(cmd,i);
             } else if (strcmp(cmd[0],"UPDATE") == 0){
-                updateFile(cmd);
+                updateFile(cmd,i);
             } else if (strcmp(cmd[0],"READ") == 0){
-                readFile(cmd);
+                readFile(cmd,i);
             } else {
                 printf("Invalid command: %s\n", buffer);
-            }
-
-            
-            
+            }           
         }
 
         close(newsock);

@@ -33,8 +33,9 @@ int main(int argc, char *argv[])
 
     memset(&serv_addr, '0', sizeof(serv_addr)); 
 
+    unsigned short port = (unsigned short) strtoul(argv[1], NULL, 0); 
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(8147); 
+    serv_addr.sin_port = htons(port); 
 
     if(inet_pton(AF_INET, ip, &serv_addr.sin_addr)<=0)
     {
@@ -49,7 +50,7 @@ int main(int argc, char *argv[])
     } 
 
     //-----COMMANDS-----
-    char* cmd = "ADD blah";
+    char* cmd = "ADD blah.txt 5\nhello";
     n = write( sock, cmd, strlen( cmd ) );
     if ( n < strlen( cmd ) ) {
         perror( "write()" );
