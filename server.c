@@ -9,150 +9,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include "servercommands.h"
 
 #define BUFFER_SIZE 1024
 extern int errno;
-
-/*
-* Fills cmd[] with command separated into args.
-*/
-void parseCommand(char buffer[BUFFER_SIZE], char *cmd[]){
-    //separate values into array, delimiting at " " and "\n"
-    cmd[0] = strsep(&buffer, " \n");
-    int i = 0;
-    while (cmd[i]){
-        i++;
-        cmd[i] = strsep(&buffer, " \n");
-    }
-}
-
-/*
-* Returns true if file exists and false otherwise
-*/
-int fileExists(const char* file){
-    struct stat buffer;   
-    return (stat (file, &buffer) == 0);
-}
-
-/*
-* Adds file to .storage directory.
-* If the .storage directory doesn't exist, it is created.
-* If the file already exists, it is not overwritten.
-*/
-char* addFile(char *cmd[], int argc){
-    //TODO: accomodate for 3 args (no contents of file, just create blank)
-    //check for proper number of args
-    if (argc != 4){
-        printf("invalid number of arguments\n");
-        return("ERROR");
-    }
-
-    //Create .storage folder
-    char path[80] = ".storage";
-    int n = mkdir(path, S_IRWXU);
-    if (n < 0 && errno != EEXIST){
-        perror("mkdir()");
-        return("ERROR");
-    }
-
-    //Construct the relative path to the file to create
-    strcpy(path,"./.storage/");
-    strcat(path,cmd[1]);
-
-    //If the file already exists, return immediately
-    if (fileExists(path)){
-        return("FILE EXISTS");
-    }
-
-    //Otherwise, open the file and write to it
-    int fd = open(path, O_CREAT|O_WRONLY, S_IRUSR|S_IWUSR);
-    if (fd < 0){
-        perror("open()");
-        return("ERROR");
-    } else {
-        n = write(fd, cmd[3], atoi(cmd[2]));
-        if (n < 0){
-            perror("write()");
-            return("ERROR");
-        }
-    }
-
-    return("ACK");
-}
-
-/*
-* Overwrites file in .storage directory.
-* If the file doesn't exist, it is not created.
-*/
-char* updateFile(char *cmd[], int argc){
-    //TODO: accomodate for 3 args (no contents, just make blank)
-    //check for proper number of args
-    if (argc != 4){
-        printf("invalid number of arguments\n");
-        return("ERROR");
-    }
-
-    //Construct the relative path to the file to create
-    char path[80] = "./.storage/";
-    strcat(path,cmd[1]);
-
-    //If the file doesn't exist, return immediately
-    if (!fileExists(path)){
-        return("NO SUCH FILE");
-    }
-
-    //Otherwise, open the file and write to it
-    int fd = open(path, O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR);
-    if (fd < 0){
-        perror("open()");
-        return("ERROR");
-    } else {
-        int n = write(fd, cmd[3], atoi(cmd[2]));
-        if (n < 0){
-            perror("write()");
-            return("ERROR");
-        }
-    }
-
-    return("ACK");
-}
-
-/*
-* Reads contents of file in .storage directory and stores in buffer.
-*/
-char* readFile(char *cmd[], int argc, char* buffer){
-    //check for proper number of args
-    if (argc != 2){
-        printf("invalid number of arguments\n");
-        return("ERROR");
-    }
-
-    //Construct the relative path to the file to create
-    char path[80] = "./.storage/";
-    strcat(path,cmd[1]);
-
-    //If the file doesn't exist, return immediately
-    if (!fileExists(path)){
-        return("NO SUCH FILE");
-    }
-
-    //Otherwise, open the file and read from it
-    int fd = open(path, O_RDONLY);
-    if (fd < 0){
-        perror("open()");
-        return("ERROR");
-    } else {
-        char file_contents[80];
-        int n = read(fd,file_contents,80);
-        if (n < 0){
-            perror("read()");
-            return("ERROR");
-        }
-        strcpy(buffer,file_contents);
-    }
-
-    return("ACK");
-}
 
 int main(int argc, char *argv[])
 {
@@ -236,18 +96,50 @@ int main(int argc, char *argv[])
                 i++;
             }
             
-
-            //execute command
-            //TODO: return success/failure message to client
+            //execute command and return success/failure message to client
             if (strcmp(cmd[0],"ADD") == 0){
-                addFile(cmd,i);
+                char* msg = addFile(cmd,i);
+                n = send(newsock, msg, strlen(msg), 0);
+                if ( n < strlen( msg ) ) {
+                    perror( "Write()" );
+                }
+                close( newsock );
             } else if (strcmp(cmd[0],"UPDATE") == 0){
-                updateFile(cmd,i);
+                char* msg = updateFile(cmd,i);
+                n = send(newsock, msg, strlen(msg), 0);
+                if ( n < strlen( msg ) ) {
+                    perror( "Write()" );
+                }
+                close( newsock );
             } else if (strcmp(cmd[0],"READ") == 0){
-                readFile(cmd,i,buffer);
-                printf("%s\n",buffer);
+                char len[10];
+                len[0] = '\0';
+
+                char msg[BUFFER_SIZE];
+                msg[0] = '\0';
+
+                char* ret = readFile(cmd,i,buffer,len);
+
+                strcat(msg, ret);
+                strcat(msg, " ");
+                strcat(msg, len);
+                strcat(msg, "\n");
+                strcat(msg,buffer);
+
+                n = send(newsock, msg, strlen(msg), 0);
+                if ( n < strlen( msg ) ) {
+                    perror( "Write()" );
+                }
+                close( newsock );
             } else {
-                printf("Invalid command: %s\n", buffer);
+                //TODO: this doesn't work
+                char* msg = "Invalid command: ";
+                strcat(msg, buffer);
+                n = send(newsock, msg, strlen(msg), 0);
+                if ( n < strlen( msg ) ) {
+                    perror( "Write()" );
+                }
+                close( newsock );
             }           
         }
 

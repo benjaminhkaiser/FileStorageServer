@@ -50,23 +50,25 @@ int main(int argc, char *argv[])
     } 
 
     //-----COMMANDS-----
-    char* cmd = "READ blah.txt";
-    n = write( sock, cmd, strlen( cmd ) );
-    if ( n < strlen( cmd ) ) {
-        perror( "write()" );
-        exit( 1 );
-    }
-    sleep(5);
+    char* cmd = "READ temp3.txt";
 
-    //TODO: Multiple commands like this not working
-    /*
-    cmd = "hello again";
-    n = write( sock, cmd, strlen( cmd ) );
-    if ( n < strlen( cmd ) ) {
-        perror( "write()" );
-        exit( 1 );
+    while ( 1 ){
+        sleep( 5 );
+
+        n = write( sock, cmd, strlen( cmd ) );
+        if ( n < strlen( cmd ) ) {
+            perror( "write()" );
+            exit( 1 );
+        }
+
+        n = read( sock, buffer, 1024 );   // BLOCK
+        if ( n < 1 ) {
+            //perror( "read()" );
+            exit( 1 );
+        } else {
+            buffer[n] = '\0';
+            printf( "Received message from server: %s\n", buffer );
+        }
     }
-    sleep(5);
-    */
     return 0;
 }
