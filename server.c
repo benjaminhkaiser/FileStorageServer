@@ -38,18 +38,21 @@ int fileExists(const char* file){
 * Adds file to .storage directory.
 * If the .storage directory doesn't exist, it is created.
 * If the file already exists, it is not overwritten.
-*
-* Return codes: 0 = added successfully
-*               1 = failed to add
-*               2 = file already exists
 */
-int addFile(char *cmd[], int argc){
+char* addFile(char *cmd[], int argc){
+    //TODO: accomodate for 3 args (no contents of file, just create blank)
+    //check for proper number of args
+    if (argc != 4){
+        printf("invalid number of arguments\n");
+        return("ERROR");
+    }
+
     //Create .storage folder
     char path[80] = ".storage";
     int n = mkdir(path, S_IRWXU);
     if (n < 0 && errno != EEXIST){
         perror("mkdir()");
-        return(0);
+        return("ERROR");
     }
 
     //Construct the relative path to the file to create
@@ -58,33 +61,97 @@ int addFile(char *cmd[], int argc){
 
     //If the file already exists, return immediately
     if (fileExists(path)){
-        return(2);
+        return("FILE EXISTS");
     }
 
     //Otherwise, open the file and write to it
     int fd = open(path, O_CREAT|O_WRONLY, S_IRUSR|S_IWUSR);
     if (fd < 0){
         perror("open()");
-        return(0);
+        return("ERROR");
     } else {
-       n = write(fd, cmd[3], atoi(cmd[2]));
-       if (n < 0){
-        perror("write()");
-        return(0);
-       }
+        n = write(fd, cmd[3], atoi(cmd[2]));
+        if (n < 0){
+            perror("write()");
+            return("ERROR");
+        }
     }
 
-    return(1);
+    return("ACK");
 }
 
-int updateFile(char *cmd[], int argc){
+/*
+* Overwrites file in .storage directory.
+* If the file doesn't exist, it is not created.
+*/
+char* updateFile(char *cmd[], int argc){
+    //TODO: accomodate for 3 args (no contents, just make blank)
+    //check for proper number of args
+    if (argc != 4){
+        printf("invalid number of arguments\n");
+        return("ERROR");
+    }
 
-    return(1);
+    //Construct the relative path to the file to create
+    char path[80] = "./.storage/";
+    strcat(path,cmd[1]);
+
+    //If the file doesn't exist, return immediately
+    if (!fileExists(path)){
+        return("NO SUCH FILE");
+    }
+
+    //Otherwise, open the file and write to it
+    int fd = open(path, O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR);
+    if (fd < 0){
+        perror("open()");
+        return("ERROR");
+    } else {
+        int n = write(fd, cmd[3], atoi(cmd[2]));
+        if (n < 0){
+            perror("write()");
+            return("ERROR");
+        }
+    }
+
+    return("ACK");
 }
 
-int readFile(char *cmd[], int argc){
+/*
+* Reads contents of file in .storage directory and stores in buffer.
+*/
+char* readFile(char *cmd[], int argc, char* buffer){
+    //check for proper number of args
+    if (argc != 2){
+        printf("invalid number of arguments\n");
+        return("ERROR");
+    }
 
-    return(1);
+    //Construct the relative path to the file to create
+    char path[80] = "./.storage/";
+    strcat(path,cmd[1]);
+
+    //If the file doesn't exist, return immediately
+    if (!fileExists(path)){
+        return("NO SUCH FILE");
+    }
+
+    //Otherwise, open the file and read from it
+    int fd = open(path, O_RDONLY);
+    if (fd < 0){
+        perror("open()");
+        return("ERROR");
+    } else {
+        char file_contents[80];
+        int n = read(fd,file_contents,80);
+        if (n < 0){
+            perror("read()");
+            return("ERROR");
+        }
+        strcpy(buffer,file_contents);
+    }
+
+    return("ACK");
 }
 
 int main(int argc, char *argv[])
@@ -111,46 +178,49 @@ int main(int argc, char *argv[])
     struct sockaddr_in server; //socket struct from socket.h
     //struct sockaddr_in client; //socket struct from socket.h
 
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE];   //buffer to hold rec'd messages
 
+    //open socket
     sock = socket(AF_INET, SOCK_STREAM, 0);
-
     if (sock < 0){
         perror("socket()");
         exit(1);
     }
 
-    memset(&server, '0', sizeof(server));
-    memset(buffer, '0', sizeof(buffer)); 
-
+    //set server data
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = htonl(INADDR_ANY);
     server.sin_port = htons(port); 
 
+    //bind server to socket
     if (bind(sock, (struct sockaddr*)&server, sizeof(server)) < 0){
         perror ("bind()");
         exit(1);
     }
 
+    //listen to bound socket
     listen(sock, 5); 
     printf( "Listener socket created and bound to port %d\n", port );
 
     while(1)
     {
+
+        //wait for client connection
         printf("Blocked on accept()\n");
         newsock = accept(sock, (struct sockaddr*)NULL, NULL); 
         printf( "Accepted client connection\n" );
         fflush( NULL );
 
-        n = recv( newsock, buffer, BUFFER_SIZE - 1, 0 );   // BLOCK
+        //get message from client
+        n = recv( newsock, buffer, BUFFER_SIZE - 1, 0 );
         if ( n < 1 ) {
             perror( "recv()" );
-        }
-        else {
+        } else {
+            //finalize buffer and print
             buffer[n] = '\0';
             printf( "Rcvd: %s\n", buffer );
 
-            //initialize array
+            //initialize array to hold parsed command
             char** cmd = malloc(80);
             int i;
             for (i = 0; i != 80; i++){
@@ -159,19 +229,23 @@ int main(int argc, char *argv[])
 
             parseCommand(buffer, cmd);
 
-            printf("\n");
+            //find end of cmd array
             i = 0;
             while (cmd[i]){
-                printf("%d: %s\n", i, cmd[i]);
+                //printf("%d: %s\n", i, cmd[i]);
                 i++;
             }
+            
 
+            //execute command
+            //TODO: return success/failure message to client
             if (strcmp(cmd[0],"ADD") == 0){
                 addFile(cmd,i);
             } else if (strcmp(cmd[0],"UPDATE") == 0){
                 updateFile(cmd,i);
             } else if (strcmp(cmd[0],"READ") == 0){
-                readFile(cmd,i);
+                readFile(cmd,i,buffer);
+                printf("%s\n",buffer);
             } else {
                 printf("Invalid command: %s\n", buffer);
             }           

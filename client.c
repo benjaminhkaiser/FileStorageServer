@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     } 
 
     //-----COMMANDS-----
-    char* cmd = "ADD blah.txt 5\nhello";
+    char* cmd = "READ blah.txt";
     n = write( sock, cmd, strlen( cmd ) );
     if ( n < strlen( cmd ) ) {
         perror( "write()" );
