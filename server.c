@@ -11,7 +11,7 @@
 #include <fcntl.h>
 #include "servercommands.h"
 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 1024    //TODO: fix for arbitrary length message
 extern int errno;
 
 int main(int argc, char *argv[])

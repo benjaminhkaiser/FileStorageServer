@@ -150,15 +150,13 @@ char* readFile(char *cmd[], int argc, char* buffer, char* len){
         perror("open()");
         return("ERROR");
     } else {
-        char file_contents[80];
-        n = read(fd,file_contents,80);
+        char file_contents[BUFFER_SIZE];
+        n = read(fd,file_contents,BUFFER_SIZE);
         if (n < 0){
             perror("read()");
             return("ERROR");
         }
         strcpy(buffer,file_contents);
-        printf("buffer: -%s-\n", buffer);
-
     }
 
     //convert len to a string
