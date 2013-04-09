@@ -15,7 +15,18 @@
 extern int errno;
 
 /*
+* Returns true if file exists and false otherwise
+*/
+int fileExists(const char* file){
+    struct stat buffer;   
+    return (stat (file, &buffer) == 0);
+}
+
+/*
 * Fills cmd[] with command separated into args.
+* Args:
+*   -buffer: raw text of incoming command
+*   -cmd: array to fill with buffer separated into arguments
 */
 void parseCommand(char buffer[BUFFER_SIZE], char *cmd[]){
     //separate values into array, delimiting at " " and "\n"
@@ -25,15 +36,6 @@ void parseCommand(char buffer[BUFFER_SIZE], char *cmd[]){
         i++;
         cmd[i] = strsep(&buffer, " \n");
     }
-    //TODO: FIX TO HANDLE MESSAGES WITH SPACES
-}
-
-/*
-* Returns true if file exists and false otherwise
-*/
-int fileExists(const char* file){
-    struct stat buffer;   
-    return (stat (file, &buffer) == 0);
 }
 
 /*
@@ -41,9 +43,12 @@ int fileExists(const char* file){
 * If the .storage directory doesn't exist, it is created.
 * If the file already exists, it is not overwritten.
 * Returns success or error code
+* Args:
+*   cmd: args of command separated into array
+*   argc: number of arguments in cmd[]
+*   thread_id: id# of thread that called the function
 .*/
-char* addFile(char *cmd[], int argc){
-    //TODO: accomodate for 3 args (no contents of file, just create blank)
+char* addFile(char *cmd[], int argc, int thread_id){
     //check for proper number of args
     if (argc != 4){
         printf("invalid number of arguments\n");
@@ -80,7 +85,7 @@ char* addFile(char *cmd[], int argc){
         }
     }
 
-    printf("Transferred file (%d bytes)\n", n);
+    printf("[thread %d] Transferred file (%d bytes)\n", thread_id, n);
     return("ACK");
 }
 
@@ -88,9 +93,12 @@ char* addFile(char *cmd[], int argc){
 * Overwrites file in .storage directory.
 * If the file doesn't exist, it is not created.
 * Returns success or error code.
+* Args:
+*   cmd: args of command separated into array
+*   argc: number of arguments in cmd[]
+*   thread_id: id# of thread that called the function
 */
-char* updateFile(char *cmd[], int argc){
-    //TODO: accomodate for 3 args (no contents, just make blank)
+char* updateFile(char *cmd[], int argc, int thread_id){
     //check for proper number of args
     if (argc != 4){
         printf("invalid number of arguments\n");
@@ -121,7 +129,7 @@ char* updateFile(char *cmd[], int argc){
         }
     }
 
-    printf("Transferred file (%d bytes)\n", n);
+    printf("[thread %d] Transferred file (%d bytes)\n", thread_id, n);
     return("ACK");
 }
 
@@ -129,8 +137,14 @@ char* updateFile(char *cmd[], int argc){
 * Reads contents of file in .storage directory and stores in buffer.
 * Length of read data is stored in len.
 * Returns success or error code.
+* Args:
+*   cmd: args of command separated into array
+*   argc: number of arguments in cmd[]
+*   buffer: buffer to fill with read data
+*   len: number of bytes read into buffer (as a string)
+*   thread_id: id# of thread that called the function
 */
-char* readFile(char *cmd[], int argc, char* buffer, char* len){
+char* readFile(char *cmd[], int argc, char* buffer, char* len, int thread_id){
     //check for proper number of args
     if (argc != 2){
         printf("invalid number of arguments\n");
@@ -166,6 +180,6 @@ char* readFile(char *cmd[], int argc, char* buffer, char* len){
     //convert len to a string
     snprintf(len, sizeof(int), "%d", n);
 
-    printf("Transferred file (%d bytes)\n", n);
+    printf("[thread %d] Transferred file (%d bytes)\n", thread_id, n);
     return("ACK");
 }
