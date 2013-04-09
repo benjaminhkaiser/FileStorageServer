@@ -80,6 +80,7 @@ char* addFile(char *cmd[], int argc){
         }
     }
 
+    printf("Transferred file (%d bytes)\n", n);
     return("ACK");
 }
 
@@ -105,6 +106,8 @@ char* updateFile(char *cmd[], int argc){
         return("NO SUCH FILE");
     }
 
+    int n = 0;
+
     //Otherwise, open the file and write to it
     int fd = open(path, O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR);
     if (fd < 0){
@@ -118,6 +121,7 @@ char* updateFile(char *cmd[], int argc){
         }
     }
 
+    printf("Transferred file (%d bytes)\n", n);
     return("ACK");
 }
 
@@ -162,5 +166,6 @@ char* readFile(char *cmd[], int argc, char* buffer, char* len){
     //convert len to a string
     snprintf(len, sizeof(int), "%d", n);
 
+    printf("Transferred file (%d bytes)\n", n);
     return("ACK");
 }

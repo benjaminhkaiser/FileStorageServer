@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     } 
 
     //-----COMMANDS-----
-    char* cmd = "READ temp.txt";
+    char* cmd = "READ temp2.txt";
 
     while ( 1 ){
         sleep( 5 );

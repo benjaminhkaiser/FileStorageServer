@@ -102,6 +102,8 @@ int main(int argc, char *argv[])
                 n = send(newsock, msg, strlen(msg), 0);
                 if ( n < strlen( msg ) ) {
                     perror( "Write()" );
+                } else {
+                    printf("Sent: %s\n", msg);
                 }
                 close( newsock );
             } else if (strcmp(cmd[0],"UPDATE") == 0){
@@ -109,6 +111,8 @@ int main(int argc, char *argv[])
                 n = send(newsock, msg, strlen(msg), 0);
                 if ( n < strlen( msg ) ) {
                     perror( "Write()" );
+                } else {
+                    printf("Sent: %s\n", msg);
                 }
                 close( newsock );
             } else if (strcmp(cmd[0],"READ") == 0){
@@ -129,11 +133,13 @@ int main(int argc, char *argv[])
                 n = send(newsock, msg, strlen(msg), 0);
                 if ( n < strlen( msg ) ) {
                     perror( "Write()" );
+                } else {
+                    printf("Sent: %s\n", msg);
                 }
                 close( newsock );
             } else {
                 //TODO: this doesn't work
-                char* msg = "Invalid command: ";
+                char msg[BUFFER_SIZE] = "Invalid command: ";
                 strcat(msg, buffer);
                 n = send(newsock, msg, strlen(msg), 0);
                 if ( n < strlen( msg ) ) {
