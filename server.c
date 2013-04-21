@@ -111,7 +111,7 @@ void* processClient(void* temp){
 
         n = send(newsock, msg, strlen(msg), 0);
         if ( n < strlen( msg ) ) {
-            perror( "Write()" );
+            perror( "send()" );
         } else {
             printf("[thread %d] Sent: %s\n", t, msg);
         }
@@ -123,20 +123,37 @@ void* processClient(void* temp){
 
         n = send(newsock, msg, strlen(msg), 0);
         if ( n < strlen( msg ) ) {
-            perror( "Write()" );
+            perror( "send()" );
         } else {
             printf("[thread %d] Sent: %s\n", t, msg);
         }
     } else if (prefixMatch(cmd, "READ")){
-        printf("read");
-        //get filename
-        //readfile(filename, thread_id)
+        char* filename = malloc(80*sizeof(char));
+        parseFilename(cmd, filename);
+        int bytes = readFile(filename, data, t);
+
+        char* msg = malloc(1024*1024*50*sizeof(int));
+        if (bytes == -1){
+            msg = "NO SUCH FILE";
+        } else if (bytes == -2){
+            msg = "ERROR";
+        } else {
+            msg = "ACK";
+            strcat(msg, " ");
+            char bytesstr[15];
+            sprintf(bytesstr,"%d",bytes);
+            strcat(msg, bytesstr);
+            strcat(msg, "\n");
+            //figure out how to send actual data
+        }
+
+
     } else {
         char msg[BUFFER_SIZE] = "Invalid command: ";
         strcat(msg, cmd);
         n = send(newsock, msg, strlen(msg), 0);
         if ( n < strlen( msg ) ) {
-            perror( "Write()" );
+            perror( "send()" );
         }  else {
             printf("[thread %d] Sent: %s\n", t, msg);
         }

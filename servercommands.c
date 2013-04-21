@@ -238,42 +238,43 @@ char* updateFile(int size, char* filename, char** data, int thread_id){
 *   len: number of bytes read into buffer (as a string)
 *   thread_id: id# of thread that called the function
 */
-char* readFile(char *cmd[], int argc, char* buffer, char* len, int thread_id){
-    //check for proper number of args
-    if (argc != 2){
-        printf("invalid number of arguments\n");
-        return("ERROR");
-    }
-
+int readFile(char* filename, char** data, int thread_id){
     //Construct the relative path to the file to create
-    char path[80] = "./.storage/";
-    strcat(path,cmd[1]);
+    char path[100] = "./.storage/";
+    strcat(path,filename);
 
     //If the file doesn't exist, return immediately
     if (!fileExists(path)){
-        return("NO SUCH FILE");
+        return(-1);
     }
 
     int n = 0;
+    int size = 0;
 
     //Otherwise, open the file and read from it
     int fd = open(path, O_RDONLY);
     if (fd < 0){
         perror("open()");
-        return("ERROR");
+        return(-2);
     } else {
-        char file_contents[BUFFER_SIZE];
-        n = read(fd,file_contents,BUFFER_SIZE);
+        n = read(fd,data[0],BUFFER_SIZE);
         if (n < 0){
             perror("read()");
-            return("ERROR");
+            return(-2);
         }
-        strcpy(buffer,file_contents);
+
+        int i = 0;
+        while(data[i]){
+            size += n;
+            i++;
+            n = read(fd,data[0],BUFFER_SIZE);
+            if (n < 0){
+                perror("read()");
+                return(-2);
+            }
+        }
     }
 
-    //convert len to a string
-    snprintf(len, sizeof(int), "%d", n);
-
-    printf("[thread %d] Transferred file (%d bytes)\n", thread_id, n);
-    return("ACK");
+    printf("[thread %d] Transferred file (%d bytes)\n", thread_id, size);
+    return(size);
 }
