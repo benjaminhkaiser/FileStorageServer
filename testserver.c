@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <pthread.h>
 #include <fcntl.h>
+#include "servercommands.h"
 
 /*TODO LIST
 * fix parseCommand() for arbitrary length message and messages w/spaces
@@ -56,7 +57,7 @@ void* processClient(void* temp){
 
     int n = 1;  //return val for recv
 
-    char* cmd = malloc(100*sizeof(char));   //first part of command (cmd, size, and filename)
+    char cmd[100];   //first part of command (cmd, size, and filename)
     int data_flag = 0;  //flag to tell if in data segment of cmd or not
     int i = 0;  //counter for location in data[] array
     char** data = (char**) calloc(BUFFER_SIZE*BUFFER_SIZE, sizeof(char*)); //string array to hold rec'd data
@@ -93,12 +94,52 @@ void* processClient(void* temp){
         }
     }
 
+    //Print receipt message
     printf( "[thread %d] Rcvd: ", t);
     i = 0;
     printf("%s\n", cmd);
     while (data[i]){
         printf("%s",data[i]);
         i++;
+    }
+
+    if(prefixMatch(cmd,"ADD")){
+        char* filename = malloc(80*sizeof(char));
+        parseFilename(cmd, filename);
+        int size = parseSize(cmd);
+        char* msg = addFile(size, filename, data, t);
+
+        n = send(newsock, msg, strlen(msg), 0);
+        if ( n < strlen( msg ) ) {
+            perror( "Write()" );
+        } else {
+            printf("[thread %d] Sent: %s\n", t, msg);
+        }
+    } else if (prefixMatch(cmd, "UPDATE")){
+        char* filename = malloc(80*sizeof(char));
+        parseFilename(cmd, filename);
+        int size = parseSize(cmd);
+        char* msg = updateFile(size, filename, data, t);
+
+        n = send(newsock, msg, strlen(msg), 0);
+        if ( n < strlen( msg ) ) {
+            perror( "Write()" );
+        } else {
+            printf("[thread %d] Sent: %s\n", t, msg);
+        }
+    } else if (prefixMatch(cmd, "READ")){
+        printf("read");
+        //get filename
+        //readfile(filename, thread_id)
+    } else {
+        char msg[BUFFER_SIZE] = "Invalid command: ";
+        strcat(msg, cmd);
+        n = send(newsock, msg, strlen(msg), 0);
+        if ( n < strlen( msg ) ) {
+            perror( "Write()" );
+        }  else {
+            printf("[thread %d] Sent: %s\n", t, msg);
+        }
     }
 
     close(newsock);
