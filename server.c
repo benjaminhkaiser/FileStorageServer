@@ -141,7 +141,6 @@ void* processClient(void* temp){
             }  else {
                 printf("[thread %d] Sent: %s\n", t, msg);
             }
-            break;
         } else {
             //execute command
             char* msg = updateFile(size, filename, data, t);
