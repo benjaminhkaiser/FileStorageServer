@@ -45,7 +45,8 @@ void parseFilename(char cmd[100], char* filename){
 }
 
 /*
-* Parses size from cmd, returns as int
+* Parses size from cmd, returns as int.
+* Returns -1 in case of parsing error
 */
 int parseSize(char* cmd){
     char* size = malloc(100*sizeof(char));
@@ -63,7 +64,12 @@ int parseSize(char* cmd){
         i++;
     }
 
-    int bytes = atoi(size);
+    //using strtol because atoi doesn't catch errors
+    int bytes = (int) strtol(size, (char **)NULL, 10);
+    if (bytes == 0){
+        return -1;
+    }
+    
     return bytes;
 }
 
@@ -82,6 +88,13 @@ int prefixMatch(char* string, char* searchstring){
     i++;
   }
   return 1;
+}
+
+/*
+* Like strcat(), but for non-string data.
+*/
+void concatData(char* dest, char* source, int len){
+
 }
 
 /*
@@ -264,10 +277,12 @@ int readFile(char* filename, char** data, int thread_id){
         }
 
         int i = 0;
-        while(data[i]){
+        while(n > 0){
+            printf("-%d-\n",i);
             size += n;
             i++;
-            n = read(fd,data[0],BUFFER_SIZE);
+            data[i] = malloc(1024*sizeof(char));
+            n = read(fd,data[i],BUFFER_SIZE);
             if (n < 0){
                 perror("read()");
                 return(-2);

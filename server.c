@@ -13,14 +13,7 @@
 #include "servercommands.h"
 
 /*TODO LIST
-* fix parseCommand() for arbitrary length message and messages w/spaces
-*   -split by space until the first newline in buffer
-*   -after newline, treat remainder as message
-* free up completed threads
-*   -make a thread struct that contains id and available flag
-*   -when threads terminate, reset availability
 * find client hostname and print upon connection
-* maybe implement forking on client connection like in class?
 */
 
 #define BUFFER_SIZE 1024    
@@ -103,52 +96,103 @@ void* processClient(void* temp){
         i++;
     }
 
+
     if(prefixMatch(cmd,"ADD")){
+        //parse filename and size from command
         char* filename = malloc(80*sizeof(char));
         parseFilename(cmd, filename);
         int size = parseSize(cmd);
-        char* msg = addFile(size, filename, data, t);
 
-        n = send(newsock, msg, strlen(msg), 0);
-        if ( n < strlen( msg ) ) {
-            perror( "send()" );
+        //catch size parsing error
+        if (size < 0){
+            char msg[BUFFER_SIZE] = "Invalid command: ";
+            strcat(msg, cmd);
+            n = send(newsock, msg, strlen(msg), 0);
+            if ( n < strlen( msg ) ) {
+                perror( "send()" );
+            }  else {
+                printf("[thread %d] Sent: %s\n", t, msg);
+            }
         } else {
-            printf("[thread %d] Sent: %s\n", t, msg);
+            //execute command
+            char* msg = addFile(size, filename, data, t);
+
+            //send return message
+            n = send(newsock, msg, strlen(msg), 0);
+            if ( n < strlen( msg ) ) {
+                perror( "send()" );
+            } else {
+                printf("[thread %d] Sent: %s\n", t, msg);
+            }
         }
     } else if (prefixMatch(cmd, "UPDATE")){
+        //parse filename and size from command
         char* filename = malloc(80*sizeof(char));
         parseFilename(cmd, filename);
         int size = parseSize(cmd);
-        char* msg = updateFile(size, filename, data, t);
 
-        n = send(newsock, msg, strlen(msg), 0);
-        if ( n < strlen( msg ) ) {
-            perror( "send()" );
+        //catch size parsing error
+        if (size < 0){
+            char msg[BUFFER_SIZE] = "Invalid command: ";
+            strcat(msg, cmd);
+            n = send(newsock, msg, strlen(msg), 0);
+            if ( n < strlen( msg ) ) {
+                perror( "send()" );
+            }  else {
+                printf("[thread %d] Sent: %s\n", t, msg);
+            }
+            break;
         } else {
-            printf("[thread %d] Sent: %s\n", t, msg);
+            //execute command
+            char* msg = updateFile(size, filename, data, t);
+
+            //send return message
+            n = send(newsock, msg, strlen(msg), 0);
+            if ( n < strlen( msg ) ) {
+                perror( "send()" );
+            } else {
+                printf("[thread %d] Sent: %s\n", t, msg);
+            }
         }
     } else if (prefixMatch(cmd, "READ")){
+        //parse filename from command
         char* filename = malloc(80*sizeof(char));
         parseFilename(cmd, filename);
         int bytes = readFile(filename, data, t);
 
-        char* msg = malloc(1024*1024*50*sizeof(int));
+        //get error or success message
+        char* msg;
         if (bytes == -1){
             msg = "NO SUCH FILE";
         } else if (bytes == -2){
             msg = "ERROR";
         } else {
-            msg = "ACK";
+            //construct success message
+            msg = malloc(bytes*sizeof(char) + 50);
+            strcat(msg,"ACK");
             strcat(msg, " ");
             char bytesstr[15];
             sprintf(bytesstr,"%d",bytes);
             strcat(msg, bytesstr);
             strcat(msg, "\n");
-            //figure out how to send actual data
+
+            i = 0;
+            while(data[i]){
+                strcat(msg,data[i]);
+                i++;
+            }
         }
 
-
+        //send return message
+        n = send(newsock, msg, strlen(msg), 0);
+        if ( n < strlen( msg ) ) {
+            perror( "send()" );
+        } else {
+            //printf("[thread %d] Sent: %s\n", t, msg);
+            printf("[thread %d] Sent: \n", t);
+        }
     } else {
+        //send error message
         char msg[BUFFER_SIZE] = "Invalid command: ";
         strcat(msg, cmd);
         n = send(newsock, msg, strlen(msg), 0);
