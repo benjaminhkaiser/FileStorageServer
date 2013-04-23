@@ -1,3 +1,4 @@
+#BEN KAISER
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -38,14 +39,13 @@ struct arg_struct {
 *   -Closes socket
 */
 void* processClient(void* temp){
-    printf("1\n");
     char buffer[BUFFER_SIZE];   //buffer to hold rec'd messages
     struct arg_struct *args = temp;
    
     int newsock = args->arg1;
     int t = args->arg2;
 
-    printf( "Received incoming connection from <client-hostname>\n" );
+    printf( "Received incoming connection\n");
     fflush( NULL );
 
     int n = 1;  //return val for recv
@@ -227,7 +227,6 @@ int main(int argc, char *argv[]){
     }
 
     struct sockaddr_in server; //socket struct from socket.h
-    //struct sockaddr_in client; //socket struct from socket.h
 
     //open socket
     sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -268,8 +267,6 @@ int main(int argc, char *argv[]){
         struct arg_struct args;
         args.arg1 = newsock;
         args.arg2 = t;
-
-        printf("0\n");
 
         //create thread to handle client processing
         int rc = pthread_create(&threads[t], NULL, processClient, (void *)&args);

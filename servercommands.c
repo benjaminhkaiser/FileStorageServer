@@ -1,3 +1,4 @@
+#BEN KAISER
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -69,7 +70,7 @@ int parseSize(char* cmd){
     if (bytes == 0){
         return -1;
     }
-    
+
     return bytes;
 }
 
